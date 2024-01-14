@@ -1,19 +1,35 @@
 "use server";
 
+import { AuthError } from "next-auth";
 import * as z from "zod";
 
+import { signIn } from "@/auth";
+import { DEFAULT_LOGIN_REDIRECT } from "@/routes";
 import { LoginSchema } from "@/schemas";
 
 export const login = async (values: z.infer<typeof LoginSchema>) => {
   const validateFields = LoginSchema.safeParse(values);
 
-  await fakeTimeout(300);
-
   if (!validateFields.success) {
     return { error: "Invalid fields!" };
   }
 
-  return { success: "Email sent!" };
+  const { email, password } = validateFields.data;
+  try {
+    await signIn("credentials", {
+      email,
+      password,
+      redirectTo: DEFAULT_LOGIN_REDIRECT,
+    });
+  } catch (error) {
+    if (error instanceof AuthError) {
+      switch (error.type) {
+        case "CredentialsSignin":
+          return { error: "Invalid email or password!" };
+        default:
+          return { error: "Something went wrong!" };
+      }
+    }
+    throw error;
+  }
 };
-
-const fakeTimeout = (ms: number) => new Promise((resolver) => setTimeout(resolver, ms));
