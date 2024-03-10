@@ -4,6 +4,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { db } from "./lib/db";
 import { getUserById } from "./data/user";
 import { UserRole } from "@prisma/client";
+import { getTwoFactorConfirmationByUserId } from "./data/two-factor-confirmation";
 
 declare module "next-auth" {
   interface Session {
@@ -37,11 +38,23 @@ export const {
     async signIn({ user, account }) {
       // Allow OAuth without email verification
       if (account?.provider !== "credentials") return true;
-      
+
       const existingUser = await getUserById(user.id);
 
       // Prevent sign in without email verification
       if (!existingUser?.emailVerified) return false;
+
+      // Handle 2FA Authentication
+      if (existingUser?.isTwoFactorEnabled) {
+        const twoFactorConfirmation = await getTwoFactorConfirmationByUserId(existingUser.id);
+
+        if (!twoFactorConfirmation) return false;
+
+        // Delete 2FA confirmation for next sign in
+        await db.twoFactorConfirmation.delete({
+          where: { id: twoFactorConfirmation.id },
+        });
+      }
 
       return true;
     },
