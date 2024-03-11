@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { Inter } from "next/font/google";
 import { SessionProvider } from "next-auth/react";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 import type { Metadata } from "next";
 
@@ -17,7 +18,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <SessionProvider session={session}>
       <html lang="en">
-        <body className={inter.className}>{children}</body>
+        <body className={inter.className}>
+          <Toaster />
+          {children}
+        </body>
       </html>
     </SessionProvider>
   );
